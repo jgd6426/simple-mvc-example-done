@@ -1,8 +1,9 @@
 // pull in our models. This will automatically load the index.js from that folder
 const models = require('../models');
 
-// get the Cat model
+// get the Cat and Dog models
 const { Cat } = models;
+const { Dog } = models;
 
 // default fake data so that we have something to work with until we make a real Cat
 const defaultData = {
@@ -10,8 +11,16 @@ const defaultData = {
   bedsOwned: 0,
 };
 
+const defaultDogData = {
+  name: 'unknown',
+  breed: 'unknown',
+  age: 0,
+};
+
 // object for us to keep track of the last Cat we made and dynamically update it sometimes
 let lastAdded = new Cat(defaultData);
+
+let lastDog = new Dog(defaultData);
 
 // Function to handle rendering the index page.
 const hostIndex = (req, res) => {
@@ -83,6 +92,85 @@ const hostPage3 = (req, res) => {
   res.render('page3');
 };
 
+// Function for rendering the page4 template
+// Page4 has a loop that iterates over an array of dogs
+const hostPage4 = async (req, res) => {
+  try {
+    const docs = await Dog.find({}).lean().exec();
+
+    // Once we get back the docs array, we can send it to page1.
+    return res.render('page4', { dogs: docs });
+  } catch (err) {
+    /* If our database returns an error, or is unresponsive, we will print that error to
+       our console for us to see. We will also send back an error message to the client.
+
+       We don't want to send back the err from mongoose, as that would be unsafe. You
+       do not want people to see actual error messages from your server or database, or else
+       they can exploit them to attack your server.
+    */
+    console.log(err);
+    return res.status(500).json({ error: 'failed to find cats' });
+  }
+};
+
+// Create a new dog
+const createDog = async (req, res) => {
+  if (!req.body.name || !req.body.breed || !req.body.age) {
+    // If they are missing data, send back an error.
+    return res.status(400).json({ error: 'name, breed, and age are all required' });
+  }
+
+  const dogData = {
+    name: req.body.name,
+    breed: req.body.breed,
+    age: req.body.age,
+  };
+
+  const newDog = new Dog(dogData);
+
+  try {
+    await newDog.save();
+
+    lastAdded = newDog;
+    return res.json({
+      name: lastDog.name,
+      breed: lastDog.breed,
+      age: lastDog.age,
+    });
+  }
+  catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: 'failed to create dog' });
+  }
+}
+
+// Search for a dog by name, increases the dog's age by 1
+const searchDog = async (req, res) => {
+  if (!req.query.name) {
+    return res.status(400).json({ error: 'Name is required to perform a search' });
+  }
+
+  let doc;
+  try {
+    doc = await Dog.findOne({ name: req.query.name }).exec();
+  }
+  catch (err) {
+    // If there is an error, log it and send the user an error message.
+    console.log(err);
+    return res.status(500).json({ error: 'Something went wrong' });
+  }
+
+  // If we do not find something that matches our search, doc will be empty.
+  if (!doc) {
+    return res.json({ error: 'No dogs found' });
+  }
+
+  doc.age++;
+  doc.save();
+
+  return res.json({ name: doc.name, breed: doc.breed, age: doc.age });
+};
+
 // Get name will return the name of the last added cat.
 const getName = (req, res) => res.json({ name: lastAdded.name });
 
@@ -94,7 +182,7 @@ const setName = async (req, res) => {
   */
   if (!req.body.firstname || !req.body.lastname || !req.body.beds) {
     // If they are missing data, send back an error.
-    return res.status(400).json({ error: 'firstname, lastname and beds are all required' });
+    return res.status(400).json({ error: 'firstname, lastname, and beds are all required' });
   }
 
   /* If they did send all the data, we want to create a cat and add it to our database.
@@ -247,6 +335,10 @@ module.exports = {
   page1: hostPage1,
   page2: hostPage2,
   page3: hostPage3,
+  page4: hostPage4,
+  createDog,
+  searchDog,
+  updateDog,
   getName,
   setName,
   updateLast,
