@@ -338,7 +338,6 @@ module.exports = {
   page4: hostPage4,
   createDog,
   searchDog,
-  updateDog,
   getName,
   setName,
   updateLast,
