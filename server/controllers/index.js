@@ -20,7 +20,7 @@ const defaultDogData = {
 // object for us to keep track of the last Cat we made and dynamically update it sometimes
 let lastAdded = new Cat(defaultData);
 
-let lastDog = new Dog(defaultData);
+const lastDog = new Dog(defaultDogData);
 
 // Function to handle rendering the index page.
 const hostIndex = (req, res) => {
@@ -137,12 +137,11 @@ const createDog = async (req, res) => {
       breed: lastDog.breed,
       age: lastDog.age,
     });
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err);
     return res.status(500).json({ error: 'failed to create dog' });
   }
-}
+};
 
 // Search for a dog by name, increases the dog's age by 1
 const searchDog = async (req, res) => {
@@ -153,8 +152,7 @@ const searchDog = async (req, res) => {
   let doc;
   try {
     doc = await Dog.findOne({ name: req.query.name }).exec();
-  }
-  catch (err) {
+  } catch (err) {
     // If there is an error, log it and send the user an error message.
     console.log(err);
     return res.status(500).json({ error: 'Something went wrong' });
